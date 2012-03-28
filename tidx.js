@@ -1,3 +1,4 @@
+// Copyright (c) 2012, Christopher Ramey | http://github.com/cramey/tidx/blob/master/LICENSE
 var Tidx = function()
 {
 	// _index is the weighted, field-based reversed search term index
