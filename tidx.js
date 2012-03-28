@@ -114,7 +114,7 @@ var Tidx = function()
 		var re;
 		while((re = this.s_rx.exec(search)) !== null){
 			// Global term
-			if(re[3] == undefined){ this.gsearch(r, re[1]); }
+			if(re[3] == undefined || re[3] == ''){ this.gsearch(r, re[1]); }
 			// Field specific term
 			else { this.fsearch(r, re[1], re[3]); }
 		}
