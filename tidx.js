@@ -5,10 +5,10 @@ var Tidx = function()
 	this._index = {};
 
 	// regex used to find terms inside a value
-	this.v_rx = new RegExp('[\\w-]+', 'mg');
+	this.v_rx = new RegExp('(:?[a-z_-]+)|(\\d*\\.\\d+)|(\\d+)', 'img');
 
 	// regex used to break out terms with a search
-	this.s_rx = new RegExp('([\\w-]+)(:?:([\\w-]+)){0,1}', 'mg');
+	this.s_rx = new RegExp('(:?([a-z\\d-_]+):){0,1}(:?(:?"(.+?)")|([a-z_-]+)|(\\d+\\.{0,1}\\d*))', 'img')
 
 
 	// Adds data to index
@@ -95,9 +95,7 @@ var Tidx = function()
 		if(value.length == 0){ return []; }
 		var v = value.toLowerCase();
 
-		if(this._index[f] == undefined){ return []; }
-
-		if(this._index[f][v] == undefined){ return []; }
+		if(this._index[f] == undefined || this._index[f][v] == undefined){ return []; }
 
 		for(var i in this._index[f][v]){
 			if(result[i] == undefined){ result[i] = 0; }
@@ -114,10 +112,17 @@ var Tidx = function()
 
 		var re;
 		while((re = this.s_rx.exec(search)) !== null){
+			var field = re[2];
+
+			var value;
+			if(re[5] != undefined){ value = re[5]; }
+			else if(re[6] != undefined){ value = re[6]; }
+			else if(re[7] != undefined){ value = re[7]; }
+
 			// Global term
-			if(re[3] == undefined || re[3] == ''){ this.gsearch(r, re[1]); }
+			if(field == undefined || field == ''){ this.gsearch(r, value); }
 			// Field specific term
-			else { this.fsearch(r, re[1], re[3]); }
+			else { this.fsearch(r, field, value); }
 		}
 
 		return this.sortresult(r);
