@@ -5,14 +5,14 @@ var Tidx = function()
 	this._index = {};
 
 	// regex used to find terms inside a value
-	this.v_rx = new RegExp('(:?[a-z_-]+)|(\\d*\\.\\d+)|(\\d+)', 'img');
+	this.v_rx = new RegExp('(:?[a-z_-]+)|(\\d*\\.\\d+)|(\\d+)', 'mg');
 
 	// regex used to break out terms with a search
-	this.s_rx = new RegExp('(:?([a-z\\d-_]+):){0,1}(:?(:?"(.+?)")|([a-z_-]+)|(\\d+\\.{0,1}\\d*))', 'img')
+	this.s_rx = new RegExp('(:?([a-z\\d-_]+):){0,1}(:?(:?"(.+?)")|([a-z_-]+)|(\\d*\\.\\d+)|(\\d+))', 'img')
 
 
 	// Adds data to index
-	this.index = function(id, field, value)
+	this.index = function(tokenize, id, field, value)
 	{
 		var f;
 		switch(typeof field){
@@ -30,30 +30,34 @@ var Tidx = function()
 			case 'string':
 				v = value.toLowerCase();
 				// Don't index empty fields
-				if(v.length == 0){ return; }
+				if(v.length === 0){ return; }
 			break;
 
 			default: v = String(value);
 		}
 
 		// Add field to field list, as needed
-		if(this._index[f] == undefined){ this._index[f] = {}; }
+		if(this._index[f] === undefined){ this._index[f] = {}; }
 
-		// Iterate over discrete searchable terms
-		var re;
-		while((re = this.v_rx.exec(value)) !== null){
-			var v = re[0].toLowerCase();
-			// If the field in question doesn't have this term already,
-			// add it.
-			if(this._index[f][v] == undefined){ this._index[f][v] = {}; }
+		if(tokenize === true){
+			// Iterate over discrete searchable terms
+			var re;
+			while((re = this.v_rx.exec(v)) !== null){
+				var t = re[0];
+				// If the field in question doesn't have this term already,
+				// add it.
+				if(this._index[f][t] === undefined){ this._index[f][t] = {}; }
 
-			// Add this id to the reverse index under specific field (f)
-			// and term (v), if it already exists, increment the weight
-			if(this._index[f][v][id] == undefined){
-				this._index[f][v][id] = 1;
-			} else {
-				this._index[f][v][id]++;
+				// Add this id to the reverse index under specific field (f)
+				// and term (v), if it already exists, increment the weight
+				if(this._index[f][t][id] === undefined){ this._index[f][t][id] = 1; }
+				else { this._index[f][t][id]++; }
 			}
+		} else {
+			if(this._index[f][v] === undefined){ this._index[f][v] = {}; }
+			
+			if(this._index[f][v][id] === undefined){ this._index[f][v][id] = 1; }
+			else { this._index[f][v][id]++; }
 		}
 	};
 
@@ -63,17 +67,17 @@ var Tidx = function()
 	this.gsearch = function(result, value)
 	{
 		// Refuse empty searches
-		if(value.length == 0){ return []; }
+		if(value.length === 0){ return []; }
 
 		var v = value.toLowerCase();
 
 		// Loop over every field
 		for(var f in this._index){
 			// Look for the specified search term
-			if(this._index[f][v] != undefined){
+			if(this._index[f][v] !== undefined){
 				// If it exists, add the result to r, adding in the weight
 				for(var i in this._index[f][v]){
-					if(result[i] == undefined){ result[i] = 0; }
+					if(result[i] === undefined){ result[i] = 0; }
 					result[i] += this._index[f][v][i];
 				}
 			}
@@ -92,13 +96,15 @@ var Tidx = function()
 			default: f = String(field);
 		}
 
-		if(value.length == 0){ return []; }
+		if(value.length === 0){ return []; }
 		var v = value.toLowerCase();
 
-		if(this._index[f] == undefined || this._index[f][v] == undefined){ return []; }
+		if(this._index[f] === undefined || this._index[f][v] === undefined){
+			return [];
+		}
 
 		for(var i in this._index[f][v]){
-			if(result[i] == undefined){ result[i] = 0; }
+			if(result[i] === undefined){ result[i] = 0; }
 			result[i] += this._index[f][v][i];
 		}
 	};
@@ -115,14 +121,19 @@ var Tidx = function()
 			var field = re[2];
 
 			var value;
-			if(re[5] != undefined){ value = re[5]; }
-			else if(re[6] != undefined){ value = re[6]; }
-			else if(re[7] != undefined){ value = re[7]; }
+			for(var i=5; i < 9; i++){
+				if(re[i] !== undefined && re[i].length !== 0){
+					value = re[i];
+					break;
+				}
+			}
 
 			// Global term
-			if(field == undefined || field == ''){ this.gsearch(r, value); }
-			// Field specific term
-			else { this.fsearch(r, field, value); }
+			if(field !== undefined && field.length !== 0){
+				this.fsearch(r, field, value);
+			} else {
+				this.gsearch(r, value);
+			}
 		}
 
 		return this.sortresult(r);

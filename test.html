@@ -44,7 +44,11 @@
 					var s = new Date().getTime();
 					for(var i = 0; i < json.length; i++){
 						for(var f in json[i]){
-							if(f != 'id'){ t.index(i, f, json[i][f]); }
+							switch(f){
+								case 'id': break;
+								case 'email': t.index(false, i, f, json[i][f]); break;
+								default: t.index(true, i, f, json[i][f]); break;
+							}
 						}
 					}
 
