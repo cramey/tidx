@@ -7,10 +7,27 @@
 		</style>
 	</head>
 	<body>
-		<input type="text" id="search" name="search" size="50" />
-		<input type="button" id="btn_search" value="Search" />
-		<br/><br/>
-		<textarea name="output" id="output" rows="10" cols="40"></textarea>
+		<table>
+			<tr>
+				<td><label for="or_search">Logical OR Search:</label></td>
+				<td><input type="text" id="or_search" name="search" size="50" /></td>
+				<td><input type="button" id="btn_or_search" value="Search"/></td>
+			</tr>
+			<tr>
+				<td><label for="and_search">Logical AND Search:</label></td>
+				<td><input type="text" id="and_search" name="search" size="50" /></td>
+				<td><input type="button" id="btn_and_search" value="Search" /></td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td colspan="2">
+					<textarea name="output" id="output" rows="10" cols="45"></textarea>
+				</td>
+			</tr>
+		</table>
+
+		<br/>
+
 		<table>
 			<thead>
 				<tr>
@@ -55,38 +72,52 @@
 					output.val(output.val() + 'indexed in ' + (new Date().getTime() - s) + "ms\n");
 				});
 
-				// Setup the search button
-				$('#btn_search').click(function(){
-					output.val(output.val() + 'Searching .. ');
+				// Setup the search buttons
+				$('#btn_or_search').click(function(){
+					dosearch(false, $('#or_search').val());
+				});
 
-					var s = new Date().getTime();
-					var results = t.search($('#search').val());
-					output.val(output.val() + 'completed in ' + (new Date().getTime() - s) + "ms\n");
-
-					var rtbl = $('#result_table').empty();
-					for(var idx in results){
-						var i = results[idx];
-						
-						rtbl.append(
-							'<tr>' + 
-								'<td>' + json[i]['id'] + '</td>' +
-								'<td>' + json[i]['name'] + '</td>' +
-								'<td>' + json[i]['email'] + '</td>' +
-								'<td>' + json[i]['city'] + '</td>' +
-								'<td>' + json[i]['state'] + '</td>' +
-								'<td>' + json[i]['country'] + '</td>' +
-								'<td>' + json[i]['rank'] + '</td>' +
-								'<td>' + json[i]['desc'] + '</td>' +
-							'</tr>'
-						);
-					}
+				$('#btn_and_search').click(function(){
+					dosearch(true, $('#and_search').val());
 				});
 
 				// Enter should work to search, too
-				$('#search').keydown(function(e){
-					if(e.which == 13){ $('#btn_search').click(); }
+				$('#or_search').keydown(function(e){
+					if(e.which == 13){ $('#btn_or_search').click(); }
+				});
+
+				$('#and_search').keydown(function(e){
+					if(e.which == 13){ $('#btn_and_search').click(); }
 				}).focus();
 			});
+
+
+			function dosearch(and_search, value){
+				var output = $('#output');
+				output.val(output.val() + 'Searching .. ');
+
+				var s = new Date().getTime();
+				var results = t.search(and_search, value);
+				output.val(output.val() + 'completed in ' + (new Date().getTime() - s) + "ms\n");
+
+				var rtbl = $('#result_table').empty();
+				for(var idx in results){
+					var i = results[idx];
+						
+					rtbl.append(
+						'<tr>' + 
+							'<td>' + json[i]['id'] + '</td>' +
+							'<td>' + json[i]['name'] + '</td>' +
+							'<td>' + json[i]['email'] + '</td>' +
+							'<td>' + json[i]['city'] + '</td>' +
+							'<td>' + json[i]['state'] + '</td>' +
+							'<td>' + json[i]['country'] + '</td>' +
+							'<td>' + json[i]['rank'] + '</td>' +
+							'<td>' + json[i]['desc'] + '</td>' +
+						'</tr>'
+					);
+				}
+			}
 		</script>
 	</body>
 </html>

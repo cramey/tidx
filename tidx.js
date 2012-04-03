@@ -7,11 +7,11 @@ var Tidx = function()
 	// regex used to find terms inside a value
 	this.v_rx = new RegExp('(:?[a-z_-]+)|(\\d*\\.\\d+)|(\\d+)', 'mg');
 
-	// regex used to break out terms with a search
+	// regex used to break out terms within a search
 	this.s_rx = new RegExp('(:?([a-z\\d-_]+):){0,1}(:?(:?"(.+?)")|([a-z_-]+)|(\\d*\\.\\d+)|(\\d+))', 'img')
 
 
-	// Adds data to index
+	// Indexes data inside this object.
 	this.index = function(tokenize, id, field, value)
 	{
 		var f;
@@ -64,7 +64,7 @@ var Tidx = function()
 
 	// Conducts a global search for a string (value) globally,
 	// iterating through all fields.
-	this.gsearch = function(result, value)
+	this.gsearch = function(value, result)
 	{
 		// Refuse empty searches
 		if(value.length === 0){ return []; }
@@ -75,10 +75,11 @@ var Tidx = function()
 		for(var f in this._index){
 			// Look for the specified search term
 			if(this._index[f][v] !== undefined){
-				// If it exists, add the result to r, adding in the weight
+				// If it exists, add the result to r, adding in the weight and count
 				for(var i in this._index[f][v]){
-					if(result[i] === undefined){ result[i] = 0; }
-					result[i] += this._index[f][v][i];
+					if(result[i] === undefined){ result[i] = {'w': 0, 'c': 0}; }
+					result[i]['w'] += this._index[f][v][i];
+					result[i]['c']++;
 				}
 			}
 		}
@@ -86,7 +87,7 @@ var Tidx = function()
 
 
 	// Conducts a field specific search for a string (value)
-	this.fsearch = function(result, field, value)
+	this.fsearch = function(field, value, result)
 	{
 		var f;
 		switch(typeof field){
@@ -104,19 +105,22 @@ var Tidx = function()
 		}
 
 		for(var i in this._index[f][v]){
-			if(result[i] === undefined){ result[i] = 0; }
-			result[i] += this._index[f][v][i];
+			if(result[i] === undefined){ result[i] = {'w': 0, 'c': 0}; }
+			result[i]['w'] += this._index[f][v][i];
+			result[i]['c']++;
 		}
 	};
 
 
-	// Multi-term searching function - this is what you should use to
-	// search with, returns an array of found ids ordered by weight
-	this.search = function(search)
+	// Multi-term searching function. This is what you should use
+	// to search with. If and_query is true, returned results
+	// must match every term. Otherwise, any ID matching any
+	// term is returned.
+	this.search = function(and_query, search)
 	{
 		var r = {};
 
-		var re;
+		var re, tc=0;
 		while((re = this.s_rx.exec(search)) !== null){
 			var field = re[2];
 
@@ -130,21 +134,30 @@ var Tidx = function()
 
 			// Global term
 			if(field !== undefined && field.length !== 0){
-				this.fsearch(r, field, value);
+				this.fsearch(field, value, r);
 			} else {
-				this.gsearch(r, value);
+				this.gsearch(value, r);
 			}
+			tc++;
 		}
 
-		return this.sortresult(r);
+		return this.order(r, (and_query ? tc : 0));
 	};
 
 
-	this.sortresult = function(o)
+	// Orders the result of a query. Accepts an object as a result, and 
+	// the minimum floor count. In the event of an AND query, floor should
+	// be quality to the number of search terms. Otherwise it should be zero.
+	this.order = function(result, floor)
 	{
 		var t = [];
 
-		for(var i in o){ t.push([i, o[i]]); }
+		for(var i in result){
+			if(floor == 0 || result[i]['c'] >= floor){
+				t.push([i, result[i]['w']]);
+			}
+		}
+
 		t.sort(function(a,b){ return b[1] - a[1]; });
 
 		var r = [];
