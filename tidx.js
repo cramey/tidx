@@ -62,9 +62,9 @@ var Tidx = function()
 	};
 
 
-	// Conducts a global search for a string (value) globally,
-	// iterating through all fields.
-	this.gsearch = function(value, result)
+	// Conducts a global index scan for a string (value), iterating
+	// through all fields.
+	this.global_scan = function(value, result)
 	{
 		// Refuse empty searches
 		if(value.length === 0){ return []; }
@@ -86,8 +86,8 @@ var Tidx = function()
 	};
 
 
-	// Conducts a field specific search for a string (value)
-	this.fsearch = function(field, value, result)
+	// Conducts a field specific scan for a string (value)
+	this.field_scan = function(field, value, result)
 	{
 		var f;
 		switch(typeof field){
@@ -112,14 +112,9 @@ var Tidx = function()
 	};
 
 
-	// Multi-term searching function. This is what you should use
-	// to search with. If and_query is true, returned results
-	// must match every term. Otherwise, any ID matching any
-	// term is returned.
-	this.search = function(and_query, search)
+	// Raw searching function useful for chaining seaches
+	this.raw_search = function(search, result)
 	{
-		var r = {};
-
 		var re, tc=0;
 		while((re = this.s_rx.exec(search)) !== null){
 			var field = re[2];
@@ -132,14 +127,29 @@ var Tidx = function()
 				}
 			}
 
-			// Global term
+			// Field specific scan for term
 			if(field !== undefined && field.length !== 0){
-				this.fsearch(field, value, r);
+				this.field_scan(field, value, result);
+			// Global scan for term
 			} else {
-				this.gsearch(value, r);
+				this.global_scan(value, result);
 			}
+
 			tc++;
 		}
+
+		return tc;
+	}
+
+
+	// Multi-term searching function. This is what you should use
+	// to search with in most cases. If and_query is true, returned
+	// results must match every term. Otherwise, any ID matching any
+	// term is returned.
+	this.search = function(and_query, search)
+	{
+		var r = {};
+		var tc = this.raw_search(search, r);
 
 		return this.order(r, (and_query ? tc : 0));
 	};
