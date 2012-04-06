@@ -63,11 +63,11 @@ var Tidx = function()
 
 
 	// Conducts a global index scan for a string (value), iterating
-	// through all fields.
+	// through all fields. Returns the number of terms it scanned for.
 	this.global_scan = function(value, result)
 	{
 		// Refuse empty searches
-		if(value.length === 0){ return []; }
+		if(value.length === 0){ return 0; }
 
 		var v = value.toLowerCase();
 
@@ -83,25 +83,28 @@ var Tidx = function()
 				}
 			}
 		}
+
+		return 1;
 	};
 
 
-	// Conducts a field specific scan for a string (value)
+	// Conducts a field specific scan for a string (value), returns
+	// the number of terms it scanned for.
 	this.field_scan = function(field, value, result)
 	{
 		var f;
 		switch(typeof field){
 			// Don't allow undefined fields
-			case 'undefined': return;
+			case 'undefined': return 0;
 			case 'string': f = field.toLowerCase(); break;
 			default: f = String(field);
 		}
 
-		if(value.length === 0){ return []; }
+		if(value.length === 0){ return 0; }
 		var v = value.toLowerCase();
 
 		if(this._index[f] === undefined || this._index[f][v] === undefined){
-			return [];
+			return 1;
 		}
 
 		for(var i in this._index[f][v]){
@@ -109,6 +112,8 @@ var Tidx = function()
 			result[i]['w'] += this._index[f][v][i];
 			result[i]['c']++;
 		}
+
+		return 1;
 	};
 
 
@@ -129,13 +134,11 @@ var Tidx = function()
 
 			// Field specific scan for term
 			if(field !== undefined && field.length !== 0){
-				this.field_scan(field, value, result);
+				tc += this.field_scan(field, value, result);
 			// Global scan for term
 			} else {
-				this.global_scan(value, result);
+				tc += this.global_scan(value, result);
 			}
-
-			tc++;
 		}
 
 		return tc;
