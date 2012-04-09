@@ -1,0 +1,96 @@
+<html>
+	<head>
+		<title>Tidx Test</title>
+		<style type="text/css">
+			#result_table td { vertical-align: top; }	
+			td { vertical-align: bottom; }
+			th { text-align: left; }
+			#output { font-style: italic; }
+		</style>
+	</head>
+	<body>
+		<table>
+			<tr>
+				<td><label for="search">Multiterm search:</label></td>
+				<td><input type="text" id="search" name="search" size="50" /></td>
+				<td><input type="button" id="btn_search" value="Search"/></td>
+				<td><div id="output"></div></td>
+			</tr>
+		</table>
+
+		<br/>
+
+		<table id="result_table">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Name</th>
+					<th>Email</th>
+					<th>City</th>
+					<th>State</th>
+					<th>Country</th>
+					<th>Rank</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody id="result_tbody"></tbody>
+		</table>
+		<script type="text/javascript" src="../tidx.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+		<script type="text/javascript">
+			var idx = new Tidx();
+			var json = null;
+
+			$(function(){
+				var output = $('#output');
+
+				// Load test JSON
+				output.html('Loading .. ');
+				$.getJSON('test.json', function(data){
+					json = data;
+
+					var s = new Date().getTime();
+					for(var i = 0; i < json.length; i++){
+						for(var f in json[i]){
+							// Index all the fields in json except ID
+							if(f != 'id'){ idx.index(true, i, f, json[i][f]); }
+						}
+					}
+
+					output.html('test.json indexed in ' + (new Date().getTime() - s) + "ms\n");
+				});
+
+
+				// Setup the search button
+				$('#btn_search').click(function(){
+					var s = new Date().getTime();
+					var results = idx.search(true, $('#search').val());
+					output.html('Search completed in ' + (new Date().getTime() - s) + "ms\n");
+
+					var rtbl = $('#result_tbody').empty();
+					for(var i in results){
+						var row = json[results[i]];
+							
+						rtbl.append(
+							'<tr>' + 
+								'<td>' + row['id'] + '</td>' +
+								'<td>' + row['name'] + '</td>' +
+								'<td>' + row['email'] + '</td>' +
+								'<td>' + row['city'] + '</td>' +
+								'<td>' + row['state'] + '</td>' +
+								'<td>' + row['country'] + '</td>' +
+								'<td>' + row['rank'] + '</td>' +
+								'<td>' + row['desc'] + '</td>' +
+							'</tr>'
+						);
+					}
+				});
+
+				// Enter should work to search, too
+				$('#search').keydown(function(e){
+					if(e.which == 13){ $('#btn_search').click(); }
+				}).focus();
+			});
+		</script>
+	</body>
+</html>
